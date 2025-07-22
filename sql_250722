@@ -1,0 +1,61 @@
+
+WITH data1 AS(SELECT visitor_id, 
+  COUNT(*) AS move_count, 
+  COUNT(DISTINCT to_area) AS area_count, 
+  AVG(area_count) OVER () AS avg_area_count, 
+  AVG(move_count) OVER () AS avg_move_count
+  FROM tour_log
+  WHERE visit_date BETWEEN '2025-07-01' AND '2025-07-31'
+  AND to_area = '지역A' 
+  AND gender = '여성'
+  AND age BETWEEN 30 and 39
+  GROUP BY visitor_id)
+SELECT visitor_id, 
+  move_count, 
+  area_count, 
+  avg_area_count, 
+  avg_move_count,
+  FROM data1
+  WHERE move_count > avg_move_count
+  AND area_count > avg_area_count,
+  ORDER BY move_count DESC;
+
+-- ❓ 문제:
+-- 2025년 7월 한 달 동안
+-- **출발지가 '지역A'**인
+-- 30대 여성 관광객 중에서 이동 횟수와 방문 지역 수 모두 해당 집단의 평균보다 높은 관광객의
+-- visitor_id, move_count, area_count, 평균 이동횟수, 평균 방문지역 수 를 추출하시오.
+-- 결과는 move_count 기준으로 내림차순 정렬하세요.
+
+
+WITH user_stats AS (
+  SELECT 
+    visitor_id,
+    COUNT(*) AS move_count,
+    COUNT(DISTINCT to_area) AS area_count
+  FROM tour_log
+  WHERE visit_date BETWEEN '2025-07-01' AND '2025-07-31'
+    AND from_area = '지역A'
+    AND gender = '여성'
+    AND age BETWEEN 30 AND 39
+  GROUP BY visitor_id
+),
+avg_stats AS (
+  SELECT 
+    AVG(move_count) AS avg_move,
+    AVG(area_count) AS avg_area
+  FROM user_stats
+)
+SELECT 
+  u.visitor_id,
+  u.move_count,
+  u.area_count,
+  a.avg_move,
+  a.avg_area
+FROM user_stats u
+CROSS JOIN avg_stats a
+WHERE u.move_count > a.avg_move
+  AND u.area_count > a.avg_area
+ORDER BY u.move_count DESC;
+
+-- 서브쿼리 안에 윈도우함수 바로 쓸수 없음.
